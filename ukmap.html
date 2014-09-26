@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+
+
+    <style>
+
+        .uk {
+          fill: #e1e1e1;
+          stroke: #afafaf;
+        }
+
+        .ireland {
+          fill: #fafafa;
+          stroke: #afafaf;
+          stroke-dasharray: 300,400;
+        }
+
+    </style>
+
+
+    <head>
+        <title>UK map</title>
+        <link rel="icon" type="image/png" href="images/favico.ico">
+        <script src="scripts/d3/d3.js"></script>
+        <script src="scripts/jquery/jquery-1.11.1.js"></script>
+    </head>
+    
+    <body>
+        <div id="test" style="height:1200px; width:900px; margin:10px; background-color:white; border:2px solid; border-color:#cecece" align=left></div>
+    </body>
+          
+    <script id="script-template" type="text/javascript">
+        
+        var w = document.getElementById("test").clientWidth;
+        var h = document.getElementById("test").clientHeight;
+
+        var mininx = -61000,
+            mininy  = -405000,
+            maxinx = 18000,
+            maxiny = -300000;
+
+        var scale = function(minin, maxin, minout, maxout) {
+            return (maxout - minout) / (maxin - minin);
+        };
+
+        var transpose = function(input, multiple) {
+            return (input * multiple)
+        };
+
+        var xscale = scale(mininx, maxinx, 0, w),
+            yscale = scale(mininy, maxiny, 0, h),
+            scaler = d3.min([xscale, yscale]);
+
+        var xtranspose = mininx * scaler * (-1),
+            ytranspose = mininy * scaler * (-1);
+
+        var svg = d3.selectAll("#test")
+            .append("svg")
+            .attr("width", w)
+            .attr("height", h);
+
+        d3.json("data/ukcountry.json", function(countrydata) {
+
+            console.log("country data loaded")
+
+            var country = svg.selectAll("svg")
+                .data(countrydata)
+                .enter()
+                .append("g")
+                .attr("transform", "translate(" + xtranspose + "," + ytranspose + ") scale(" + scaler + ")")
+                .append("path")
+                .attr("class", function(d) { return d.class; })
+                .attr("d", function(d) { return d.path; })
+                .attr("stroke-width", 1 / scaler);
+            
+            d3.json("data/ukcity.json", function(citydata) {
+
+                console.log("city data loaded");
+                console.log(citydata[0].x);
+
+                var city = svg.selectAll("svg")
+                    .data(citydata)
+                    .enter()
+                    .append("g");
+
+                var citycirc = city
+                    .append("circle")
+                    .attr("class", function(d) {return d.name;})
+                    .attr("cx", function(d) {return d.x * -1 * scaler;})
+                    .attr("cy", function(d) {return ytranspose - d.y * -1 * scaler;})
+                    .attr("r", 5 )
+                    .attr("stroke", "black")
+                    .attr("stroke-width", 1)
+                    .attr("fill", "white");
+
+                var citytext = city
+                    .append("text")
+                    .attr("dx", function(d) {return d.x * -1 * scaler + 12;})
+                    .attr("dy", function(d) {return ytranspose - d.y * -1 * scaler + 6;})
+                    .text(function(d) {return d.name;})
+                    .attr("text-anchor", "start")
+                    .attr("x", 6 * scaler);
+
+            });
+
+        });
+
+
+    </script>
+
+</html>

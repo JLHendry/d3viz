@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+
+    <style>
+
+        body {
+            font: 10px sans-serif;
+            margin: 0;
+        }
+
+        .line {
+            fill: none;
+            stroke: #666;
+            stroke-width: 1.5px;
+        }
+
+        .area {
+            fill: #e7e7e7;
+        }
+
+    </style>
+
+    <head>
+        <title>Small Multiples</title>
+        <link rel="icon" type="image/png" href="images/favico.ico">
+        <script src="scripts/d3/d3.js"></script>
+        <script src="scripts/jquery/jquery-1.11.1.js"></script>
+    </head>
+    
+    <body>
+        <div id="test" style="height:300px; width:450px; margin:10px; background-color:white; border:1px solid; border-color:steelblue" align=left></div>
+    </body>
+          
+    <script id="script-template" type="text/javascript">
+
+        //dataset, date, amount
+
+        var clientwidth = document.getElementById("test").clientWidth;
+        var clientheight = document.getElementById("test").clientHeight;
+        var datacount = 3;
+
+        var margin = {top:10, right:10, bottom:10, left:10},
+            width = clientwidth - margin.left - margin.right,
+            height = (clientheight - ((margin.top + margin.bottom) * datacount)) / datacount;
+
+        var parseData = d3.time.format("%b %Y").parse;
+
+        var x = d3.time.scale()
+            .range([0, width]);
+
+        var y = d3.scale.linear()
+            .range([0, height]);
+
+        var line = d3.svg.line()
+            .x(function(d) { return x(d.date); })
+            .y(function(d) { return y(d.amount);});
+
+        var area = d3.svg.area()
+            .x(function(d) { return x(d.date); })
+            .y0(height)
+            .y1(function(d) { return y(d.amount); });
+
+        d3.csv("data/finance.csv", type, function(error, data) {
+
+            var datasets = d3.nest()
+                .key(function(d) { return d.dataset; })
+                .entries(data);
+
+            //////////////
+
+            datasets.forEach( function(s) {
+                s.maxAmount = d3.max(s.values, function(d) { return d.amount; })
+                s.minAmount = d3.min(s.values, function(d) { return d.amount; })
+            });
+
+            x.domain([
+                d3.min(datasets, function(s) { return s.values[0].date; }),
+                d3.max(datasets, function(s) { return s.values[s.values.length - 1].date; })
+                ]);
+
+            var svg = d3.select("#test").selectAll("svg")
+                .data(datasets)
+                    .enter()
+                .append("svg")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            svg.append("path")
+                .attr("class", "line")
+                .attr("d", function(d) { y.domain([d.maxAmount, d.minAmount]); return line(d.values); });
+
+            svg.append("path")
+                .attr("class", "area")
+                .attr("d", function(d) { y.domain([d.maxAmount, d.minAmount]); return area(d.values); });
+
+            svg.append("text")
+                .attr("class", "text")
+                .attr("x", margin.left)
+                .attr("y", 6)
+                .style("text-anchor", "start")
+                .text(function(d) { return d.key; });
+
+        });
+
+        function type(d, i) {
+            d.amount = +d.amount;
+            d.date = parseData(d.date);
+            return d;
+        }
+
+    </script>
+
+</html>
